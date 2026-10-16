@@ -8,6 +8,7 @@
 <p align="center">
   <img alt="status: development preview" src="https://img.shields.io/badge/status-development%20preview-orange">
   <img alt="contributions welcome" src="https://img.shields.io/badge/contributions-welcome-brightgreen">
+  <a href="LICENSE"><img alt="license: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-blue"></a>
 </p>
 
 ---
@@ -184,6 +185,15 @@ After changing any frontend JavaScript, run `python3 tools/stamp.py` (`tests/che
 - Standalone builds that run without a server: Android APK and Windows/macOS/Linux desktop apps (early prototypes exist)
 - Docker image for self-hosting
 - A published roadmap (coming soon)
+
+## License
+
+KEYPOS is free software under the [GNU Affero General Public License v3.0](LICENSE).
+You can use, study, change and share it. If you change KEYPOS and let other people use your
+changed version, including over a network as a hosted service, you must make your changed
+source code available to them under the same license.
+
+Copyright (C) 2026 ASEIR Creations Inc.
 
 ---
 

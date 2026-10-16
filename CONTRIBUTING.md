@@ -36,6 +36,11 @@ These rules come from how the shop actually works. Please keep them:
 - The frontend is plain ES5 with no build step, so it still runs on old Android WebViews.
 - Money is stored as decimals, never floats.
 
+## License of contributions
+
+KEYPOS is licensed under the [AGPL-3.0](LICENSE). By opening a pull request you agree that
+your contribution is released under the same license.
+
 ## Reporting security problems
 
 Please don't open a public issue for a security problem. Use GitHub's

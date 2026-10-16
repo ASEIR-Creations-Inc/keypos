@@ -1,0 +1,27 @@
+# Secrets
+.env
+*.env
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+
+# Logs
+*.log
+
+# Test screenshots (they were written into the public web root)
+frontend/*.png
+frontend/screenshots/
+tests/*.png
+
+# Editor / OS
+.DS_Store
+*.swp
+
+# worktree symlinks (see ANALYSIS.md §5)
+backend/venv
+tests/node_modules

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1565C0">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>KEYPOS Sheet</title>
+  <link rel="manifest" href="/sheet/manifest.json">
+  <link rel="icon" href="/sheet/icon-192.png">
+  <link rel="stylesheet" href="/sheet/sheet.css?v=d0e0af32">
+</head>
+<body>
+  <!-- Sign in -->
+  <div id="loginView" class="view">
+    <div class="login-card">
+      <h1>KEYPOS Sheet</h1>
+      <form id="loginForm">
+        <div class="error" id="loginError"></div>
+        <label for="loginUser" data-t="username"></label>
+        <input type="text" id="loginUser" autocomplete="username" autocapitalize="none" required>
+        <label for="loginPass" data-t="password"></label>
+        <input type="password" id="loginPass" autocomplete="current-password" required>
+        <button type="submit" id="loginBtn" class="btn btn-primary" data-t="signIn"></button>
+      </form>
+      <div class="lang-switch"><button class="lang-btn" data-lang="pt">PT</button><button class="lang-btn" data-lang="en">EN</button></div>
+    </div>
+  </div>
+
+  <!-- App -->
+  <div id="appView" class="view hidden">
+    <header class="bar">
+      <button id="backBtn" class="bar-btn hidden" aria-label="Back">&#8592;</button>
+      <div class="bar-title">
+        <div id="barTitle">KEYPOS Sheet</div>
+        <div id="barSub" class="bar-sub"></div>
+      </div>
+      <span id="syncDot" class="sync-dot" title=""></span>
+      <button id="menuBtn" class="bar-btn" aria-label="Menu">&#8942;</button>
+    </header>
+    <div id="menu" class="menu hidden">
+      <div id="menuUser" class="menu-user"></div>
+      <div class="menu-row"><span data-t="language"></span>
+        <span class="lang-switch"><button class="lang-btn" data-lang="pt">PT</button><button class="lang-btn" data-lang="en">EN</button></span>
+      </div>
+      <a id="posLink" class="menu-item hidden" href="/pos.html" data-t="openPos"></a>
+      <button id="logoutBtn" class="menu-item" data-t="signOut"></button>
+    </div>
+
+    <!-- My sheets -->
+    <main id="homeView">
+      <button id="newSheetBtn" class="btn btn-primary btn-wide" data-t="newSheet"></button>
+      <div id="sheetList"></div>
+    </main>
+
+    <!-- One sheet -->
+    <main id="sheetView" class="hidden">
+      <div id="sheetBanner"></div>
+      <nav class="tabs">
+        <button class="tab" data-tab="sales"><span data-t="sales"></span> <span id="salesCount" class="tab-count"></span></button>
+        <button class="tab" data-tab="expenses"><span data-t="expenses"></span> <span id="expenseCount" class="tab-count"></span></button>
+        <button class="tab" data-tab="summary"><span data-t="summary"></span> <span id="problemCount" class="tab-count tab-alert"></span></button>
+      </nav>
+
+      <section id="tab-sales" class="tab-body">
+        <div id="blockBar" class="block-bar"></div>
+        <div class="search-box">
+          <div id="pickHint" class="pick-hint hidden"><span id="pickText"></span><button id="pickCancel" class="pick-cancel"></button></div>
+          <input type="search" id="productSearch" autocomplete="off" autocorrect="off" spellcheck="false">
+          <div id="searchResults" class="results hidden"></div>
+        </div>
+        <div id="lines"></div>
+      </section>
+
+      <section id="tab-expenses" class="tab-body hidden">
+        <button id="addExpenseBtn" class="btn btn-outline btn-wide" data-t="addExpense"></button>
+        <div id="expenseRows"></div>
+      </section>
+
+      <section id="tab-summary" class="tab-body hidden">
+        <div id="summaryForm" class="summary"></div>
+        <div id="problemList"></div>
+        <button id="sendBtn" class="btn btn-primary btn-wide" data-t="send"></button>
+        <button id="discardBtn" class="btn btn-danger-outline btn-wide hidden" data-t="discard"></button>
+      </section>
+    </main>
+  </div>
+
+  <script src="/js/api.js?v=c31d411a"></script>
+  <script src="/sheet/sheet.js?v=6686dc70"></script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4CAF50">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>KEYPOS - Login</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/css/app.css?v=ce98f8af">
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-card">
+      <h1 class="store-name">KEYPOS</h1>
+      <form id="loginForm">
+        <div class="error-message" id="errorMessage"></div>
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" class="input-field" placeholder="Enter username" autocomplete="username" autocapitalize="none" required autofocus>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" class="input-field" placeholder="Enter password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" id="loginBtn" class="btn-primary">Sign In</button>
+      </form>
+    </div>
+  </div>
+  <script src="/js/api.js?v=c31d411a"></script>
+  <script>
+    /* Android 6 compatible — no arrow functions, no Promise.prototype.finally */
+    var loginForm = document.getElementById("loginForm");
+    var errorDiv = document.getElementById("errorMessage");
+    var usernameEl = document.getElementById("username");
+    var passwordEl = document.getElementById("password");
+    var loginBtn = document.getElementById("loginBtn");
+
+    /* A till that is offline may keep using an expired login; its sales carry it and sync later. */
+    function home() {
+      return isSheetOnly(getUser()) ? "/sheet/" : "pos.html";
+    }
+
+    if (getToken() && (!sessionExpired() || !navigator.onLine)) {
+      window.location.replace(home());
+    }
+
+    function setBusy(busy) {
+      loginBtn.disabled = busy;
+      loginBtn.textContent = busy ? "Signing in..." : "Sign In";
+    }
+
+    function showError(message) {
+      errorDiv.textContent = message;
+      errorDiv.classList.add("visible");
+    }
+
+    loginForm.addEventListener("submit", function(e) {
+      e.preventDefault();
+      errorDiv.classList.remove("visible");
+      errorDiv.textContent = "";
+      setBusy(true);
+
+      fetch("/api/auth/login", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({username: usernameEl.value.trim(), password: passwordEl.value})
+      })
+        .then(function(r) {
+          return r.json().catch(function() { return {}; }).then(function(d) { return {status: r.status, data: d}; });
+        })
+        .then(function(res) {
+          if (res.status === 429) throw new Error("Too many attempts. Wait a minute and try again.");
+          if (res.status !== 200) throw new Error("Invalid username or password");
+          saveSession(res.data);
+          window.location.replace(home());
+        })
+        .catch(function(err) {
+          setBusy(false);
+          showError(err instanceof TypeError ? "No connection to the server" : err.message);
+        });
+    });
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(function() {});
+    }
+  </script>
+</body>
+</html>

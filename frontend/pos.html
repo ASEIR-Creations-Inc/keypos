@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#212121">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>KEYPOS</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/css/app.css?v=ce98f8af">
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <button class="header-btn" id="drawerToggle">&#9776;</button>
+  <span class="header-title" id="headerTitle">KEYPOS</span>
+  <div class="header-right">
+    <button class="cart-btn" id="cartIcon">
+      &#128722;
+      <span class="cart-badge" id="cartBadge">0</span>
+    </button>
+    <span class="sync-badge online" id="syncStatus">ONLINE</span>
+    <span class="shift-badge closed" id="shiftStatus">SHIFT CLOSED</span>
+  </div>
+</header>
+
+<!-- DRAWER OVERLAY -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+
+<!-- SIDE DRAWER -->
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <button class="drawer-close" id="drawerClose">&#10005;</button>
+    <div class="drawer-title">
+      <span id="drawerStoreName">KEYPOS</span>
+      <span class="drawer-user" id="cashierName"></span>
+    </div>
+  </div>
+  <ul class="drawer-menu">
+    <li><a href="#" data-screen="pos" class="nav-link">
+      <span class="menu-icon">&#127978;</span> Register
+    </a></li>
+    <li><a href="#" id="salesHistoryBtn">
+      <span class="menu-icon">&#129534;</span> Recent Sales
+    </a></li>
+    <li><a href="#" data-screen="inventory" class="nav-link">
+      <span class="menu-icon">&#128230;</span> Inventory
+    </a></li>
+    <li><a href="#" data-screen="purchases" class="nav-link" data-needs="purchases:read">
+      <span class="menu-icon">&#128722;</span> Purchases
+    </a></li>
+    <li><a href="#" data-screen="reports" class="nav-link" data-needs="reports:own">
+      <span class="menu-icon">&#128202;</span> Reports
+    </a></li>
+    <li><a href="#" data-screen="customers" class="nav-link" data-needs="customers:read">
+      <span class="menu-icon">&#128101;</span> Customers
+    </a></li>
+    <li><a href="#" data-screen="expenses" class="nav-link" data-needs="expenses:own">
+      <span class="menu-icon">&#128181;</span> Expenses
+    </a></li>
+    <li><a href="#" data-screen="daysheet" class="nav-link">
+      <span class="menu-icon">&#128203;</span> Day Sheet <span id="sheetPendingBadge" class="badge badge-red" style="display:none;"></span>
+    </a></li>
+    <li><a href="#" data-screen="users" class="nav-link" data-needs="users:full">
+      <span class="menu-icon">&#128100;</span> Users
+    </a></li>
+    <li><a href="#" data-screen="importexport" class="nav-link" data-needs="import">
+      <span class="menu-icon">&#128196;</span> Import/Export
+    </a></li>
+    <li><a href="#" data-screen="settings" class="nav-link" data-needs="admin">
+      <span class="menu-icon">&#9881;</span> Settings
+    </a></li>
+    <div class="drawer-divider"></div>
+    <li><a href="#" id="closeShiftBtn">
+      <span class="menu-icon">&#128308;</span> Close Shift
+    </a></li>
+    <li><a href="#" id="changePasswordBtn">
+      <span class="menu-icon">&#128273;</span> Change Password
+    </a></li>
+    <li><a href="#" id="logoutBtn" class="danger">
+      <span class="menu-icon">&#128682;</span> Logout
+    </a></li>
+  </ul>
+</div>
+
+<!-- MAIN BODY -->
+<div class="app-body">
+
+<!-- ==================== REGISTER SCREEN ==================== -->
+<div class="screen active" id="screen-pos">
+  <div id="shiftClosedBanner" style="display:none;background:#F44336;color:#fff;text-align:center;padding:12px;">
+    Shift is closed. <button onclick="document.getElementById('shiftModal').classList.add('visible')" style="background:#fff;color:#F44336;border:none;padding:4px 12px;border-radius:4px;font-weight:700;margin-left:8px;">OPEN SHIFT</button>
+  </div>
+  <div class="search-bar">
+    <input type="text" id="searchBox" placeholder="Search products...">
+  </div>
+  <div class="category-bar" id="catBar"></div>
+  <div class="product-grid" id="productGrid"></div>
+</div>
+
+<!-- ==================== INVENTORY SCREEN ==================== -->
+<div class="screen" id="screen-inventory">
+  <div class="search-bar">
+    <input type="text" id="inventorySearch" placeholder="Search inventory...">
+  </div>
+  <div class="inv-filters">
+    <select id="inventoryCategoryFilter" class="form-select" aria-label="Filter by category">
+      <option value="">All categories</option>
+    </select>
+    <select id="inventoryStockFilter" class="form-select" aria-label="Filter by stock">
+      <option value="">All items</option>
+      <option value="low">Low stock</option>
+      <option value="out">Out of stock</option>
+    </select>
+  </div>
+  <div class="inv-count-bar">
+    <span id="inventoryCount" class="inv-sub"></span>
+  </div>
+  <div id="inventoryList"></div>
+  <table class="data-table inv-table" id="inventoryTable" style="display:none;">
+    <thead>
+      <tr>
+        <th data-sort="name" class="sortable">Name <span class="sort-arrow"></span></th>
+        <th data-sort="stock" class="sortable num">Stock <span class="sort-arrow"></span></th>
+        <th data-sort="price" class="sortable num">Price <span class="sort-arrow"></span></th>
+        <th data-sort="cost" class="sortable num">Cost <span class="sort-arrow"></span></th>
+      </tr>
+    </thead>
+    <tbody id="inventoryTableBody"></tbody>
+  </table>
+  <div class="empty-state" id="inventoryEmpty" style="display:none;">
+    <div class="empty-state-icon">&#128230;</div>
+    <div class="empty-state-text">No products found</div>
+  </div>
+  <button class="fab" id="addProductBtn">+</button>
+</div>
+
+<!-- ==================== PURCHASES SCREEN ==================== -->
+<div class="screen" id="screen-purchases">
+  <div style="padding:12px;display:flex;justify-content:space-between;align-items:center;">
+    <button class="btn-primary" id="newPurchaseBtn">+ New Purchase</button>
+    <button class="btn-secondary" onclick="if(typeof loadReports==='function')loadReports();openReport('purchases','Purchases Report')" style="font-size:12px;padding:6px 12px;">&#128200; Report</button>
+  </div>
+  <div id="purchasesList"></div>
+  <table class="data-table inv-table" id="purchasesTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>Ref</th>
+        <th>Supplier</th>
+        <th class="num">Total</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="purchasesTableBody"></tbody>
+  </table>
+  <div class="empty-state" id="purchasesEmpty" style="display:none;">
+    <div class="empty-state-icon">&#128722;</div>
+    <div class="empty-state-text">No purchases yet</div>
+  </div>
+</div>
+
+<!-- ==================== REPORTS SCREEN ==================== -->
+<div class="screen" id="screen-reports">
+  <div class="p-16">
+    <div class="form-field">
+      <label class="form-label">Date Range</label>
+      <div style="display:flex;">
+        <input type="date" id="reportFrom" class="form-input" style="margin-right:8px;">
+        <input type="date" id="reportTo" class="form-input">
+      </div>
+    </div>
+  </div>
+  <div style="padding:0 16px 16px;">
+    <a href="#" class="list-item" id="btnSalesSummary" style="display:flex;text-decoration:none;color:#212121;">
+      <div class="list-item-info">
+        <div class="list-item-title">&#128200; Sales Summary</div>
+        <div class="list-item-sub">Total sales, transactions, payments</div>
+      </div>
+      <div class="list-item-right">&#8250;</div>
+    </a>
+    <a href="#" class="list-item" id="btnPnl" style="display:flex;text-decoration:none;color:#212121;">
+      <div class="list-item-info">
+        <div class="list-item-title">&#128181; P&amp;L Report</div>
+        <div class="list-item-sub">Revenue, COGS, expenses, profit</div>
+      </div>
+      <div class="list-item-right">&#8250;</div>
+    </a>
+    <a href="#" class="list-item" id="btnPriceEdits" style="display:flex;text-decoration:none;color:#212121;">
+      <div class="list-item-info">
+        <div class="list-item-title">&#9999; Price Edit Report</div>
+        <div class="list-item-sub">All price changes by cashier</div>
+      </div>
+      <div class="list-item-right">&#8250;</div>
+    </a>
+    <a href="#" class="list-item" id="btnInventoryValue" style="display:flex;text-decoration:none;color:#212121;">
+      <div class="list-item-info">
+        <div class="list-item-title">&#128230; Inventory Value</div>
+        <div class="list-item-sub">Stock value at cost</div>
+      </div>
+      <div class="list-item-right">&#8250;</div>
+    </a>
+    <a href="#" class="list-item" id="btnLowStock" style="display:flex;text-decoration:none;color:#212121;">
+      <div class="list-item-info">
+        <div class="list-item-title">&#9888; Low Stock</div>
+        <div class="list-item-sub">Items below threshold</div>
+      </div>
+      <div class="list-item-right">&#8250;</div>
+    </a>
+    <a href="#" class="list-item" id="btnTaxReport" style="display:flex;text-decoration:none;color:#212121;">
+      <div class="list-item-info">
+        <div class="list-item-title">&#128176; Tax Report</div>
+        <div class="list-item-sub">Daily tax totals by rate</div>
+      </div>
+      <div class="list-item-right">&#8250;</div>
+    </a>
+    <a href="#" class="list-item" id="btnCashierReport" style="display:flex;text-decoration:none;color:#212121;">
+      <div class="list-item-info">
+        <div class="list-item-title">&#128100; Cashier Report</div>
+        <div class="list-item-sub">Per-cashier sales totals</div>
+      </div>
+      <div class="list-item-right">&#8250;</div>
+    </a>
+    <a href="#" class="list-item" id="btnStockAdjReport" style="display:flex;text-decoration:none;color:#212121;">
+      <div class="list-item-info">
+        <div class="list-item-title">&#128260; Stock Adjustments</div>
+        <div class="list-item-sub">All stock corrections</div>
+      </div>
+      <div class="list-item-right">&#8250;</div>
+    </a>
+    <a href="#" class="list-item" id="btnShiftReports" style="display:flex;text-decoration:none;color:#212121;">
+      <div class="list-item-info">
+        <div class="list-item-title">&#128424; Shift Reports</div>
+        <div class="list-item-sub">Z reports, refunds and shift activity</div>
+      </div>
+      <div class="list-item-right">&#8250;</div>
+    </a>
+    <a href="#" class="list-item" id="btnPurchasesReport" style="display:flex;text-decoration:none;color:#212121;">
+      <div class="list-item-info">
+        <div class="list-item-title">&#128230; Purchases Report</div>
+        <div class="list-item-sub">Purchase orders with WAC tracking</div>
+      </div>
+      <div class="list-item-right">&#8250;</div>
+    </a>
+  </div>
+  <div id="reportResults" class="p-16"></div>
+</div>
+
+<!-- ==================== CUSTOMERS SCREEN ==================== -->
+<div class="screen" id="screen-customers">
+  <div class="search-bar">
+    <input type="text" id="customersSearch" placeholder="Search customers...">
+  </div>
+  <div id="customersList"></div>
+  <div class="empty-state" id="customersEmpty" style="display:none;">
+    <div class="empty-state-icon">&#128101;</div>
+    <div class="empty-state-text">No customers yet</div>
+  </div>
+  <button class="fab" id="addCustomerBtn">+</button>
+</div>
+
+<!-- ==================== EXPENSES SCREEN ==================== -->
+<div class="screen" id="screen-expenses">
+  <div style="padding:12px 16px;background:#FFFFFF;border-bottom:1px solid #E0E0E0;">
+    <div style="display:flex;align-items:center;">
+      <input type="date" id="expenseFrom" class="form-input" style="margin-right:8px;flex:1;">
+      <input type="date" id="expenseTo" class="form-input" style="flex:1;">
+    </div>
+  </div>
+  <div id="expensesList"></div>
+  <div class="empty-state" id="expensesEmpty" style="display:none;">
+    <div class="empty-state-icon">&#128181;</div>
+    <div class="empty-state-text">No expenses yet</div>
+  </div>
+  <button class="fab" id="addExpenseBtn">+</button>
+</div>
+
+<!-- ==================== DAY SHEET SCREEN ==================== -->
+<div class="screen" id="screen-daysheet">
+  <div class="p-16">
+    <div id="sheetApprovals" style="display:none;">
+      <h3 style="margin-bottom:12px;color:#757575;font-size:13px;text-transform:uppercase;">Waiting for approval</h3>
+      <div id="sheetApprovalList" aria-live="polite"></div>
+      <div class="divider"></div>
+    </div>
+    <a class="btn-secondary mb-8" href="/sheet/" style="display:block;text-align:center;text-decoration:none;">&#128241; Open the KEYPOS Sheet app</a>
+    <div class="divider"></div>
+    <h3 style="margin-bottom:12px;color:#757575;font-size:13px;text-transform:uppercase;">New Excel sheet</h3>
+    <div class="form-field">
+      <label class="form-label" for="daySheetLang">Sheet language</label>
+      <select id="daySheetLang" class="form-input">
+        <option value="pt">Português</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+    <button class="btn-primary mb-8" id="daySheetNewBtn" style="width:100%;">&#11015; Download today's sheet</button>
+    <div class="divider"></div>
+    <h3 style="margin-bottom:12px;color:#757575;font-size:13px;text-transform:uppercase;">Refresh or upload a sheet</h3>
+    <div class="form-field">
+      <label class="form-label" for="daySheetFile">Your sheet (.xlsx) — close it in Excel first</label>
+      <input type="file" id="daySheetFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+    </div>
+    <button class="btn-secondary mb-8" id="daySheetRefreshBtn">&#128260; Refresh (new products and stock)</button>
+    <button class="btn-secondary mb-8" id="daySheetCheckBtn">&#11014; Check and upload</button>
+    <div id="daySheetPreview" aria-live="polite"></div>
+    <div class="divider"></div>
+    <h3 style="margin-bottom:12px;color:#757575;font-size:13px;text-transform:uppercase;">Recent sheets</h3>
+    <div id="daySheetList"></div>
+  </div>
+</div>
+
+<!-- ==================== USERS SCREEN ==================== -->
+<div class="screen" id="screen-users">
+  <div id="usersList"></div>
+  <div class="empty-state" id="usersEmpty" style="display:none;">
+    <div class="empty-state-icon">&#128100;</div>
+    <div class="empty-state-text">No users yet</div>
+  </div>
+  <button class="fab" id="addUserBtn">+</button>
+</div>
+
+<!-- ==================== IMPORT/EXPORT SCREEN ==================== -->
+<div class="screen" id="screen-importexport">
+  <div class="p-16">
+    <h3 style="margin-bottom:16px;color:#757575;font-size:13px;text-transform:uppercase;">Export</h3>
+    <button class="btn-secondary mb-8" id="exportProductsBtn">&#128229; Export Products</button>
+    <button class="btn-secondary mb-8" id="exportCustomersBtn">&#128229; Export Customers</button>
+    <button class="btn-secondary mb-8" id="exportSalesBtn">&#128229; Export Sales</button>
+    <div class="divider"></div>
+    <h3 style="margin-bottom:16px;color:#757575;font-size:13px;text-transform:uppercase;">Import</h3>
+    <div class="form-field">
+      <label class="form-label">Products CSV</label>
+      <input type="file" id="importProductsFile" accept=".csv">
+      <button class="btn-secondary mt-8" id="importProductsBtn">&#128228; Import Products</button>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Customers CSV</label>
+      <input type="file" id="importCustomersFile" accept=".csv">
+      <button class="btn-secondary mt-8" id="importCustomersBtn">&#128228; Import Customers</button>
+    </div>
+    <div class="divider"></div>
+    <h3 style="margin-bottom:16px;color:#757575;font-size:13px;text-transform:uppercase;">Templates</h3>
+    <button class="btn-secondary mb-8" id="templateProductsBtn">&#128196; Product Template</button>
+    <button class="btn-secondary mb-8" id="templateCustomersBtn">&#128196; Customer Template</button>
+    <div class="divider inv-write"></div>
+    <h3 class="inv-write" style="margin-bottom:16px;color:#D32F2F;font-size:13px;text-transform:uppercase;">Danger zone</h3>
+    <button class="btn-secondary btn-outline-red mb-8 inv-write" id="deleteAllInventoryBtn">&#128465; Clear All Products</button>
+  </div>
+</div>
+
+<!-- ==================== SETTINGS SCREEN ==================== -->
+<div class="screen" id="screen-settings">
+  <div class="form-section">
+    <div class="form-field">
+      <label class="form-label">Store Name</label>
+      <input type="text" id="settingStoreName" class="form-input" placeholder="My Store">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Currency Symbol</label>
+      <input type="text" id="settingCurrency" class="form-input" placeholder="$">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Tax Rate (%)</label>
+      <input type="number" id="settingTaxRate" class="form-input" placeholder="0">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Low Stock Threshold</label>
+      <input type="number" id="settingLowStock" class="form-input" placeholder="5">
+    </div>
+    <div class="form-field">
+      <label class="form-label" for="settingTimezone">Time zone</label>
+      <select id="settingTimezone" class="form-select"></select>
+      <p style="font-size:12px;color:#9E9E9E;margin-top:4px;">Decides where a report day starts and ends, and the date in receipt numbers.</p>
+    </div>
+    <button class="btn-primary" id="saveSettingsBtn">Save Settings</button>
+  </div>
+</div>
+
+</div><!-- end app-body -->
+
+<!-- ==================== PANELS ==================== -->
+
+<!-- CART ITEM EDIT PANEL -->
+<div class="panel" id="cartItemPanel" style="z-index:600;">
+  <div class="panel-header">
+    <button class="panel-back" id="cartItemBack">&#8592;</button>
+    <span class="panel-title" id="cartItemTitle">Edit Item</span>
+    <button id="removeCartItemBtn" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;">&#128465;</button>
+  </div>
+  <div class="form-section" style="padding-top:24px;">
+    <input type="hidden" id="cartItemProductId">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div id="cartItemName" style="font-size:18px;font-weight:700;color:#212121;margin-bottom:4px;"></div>
+      <div id="cartItemStock" style="font-size:12px;color:#9E9E9E;"></div>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Price</label>
+      <input type="number" id="cartItemPrice" class="form-input" step="0.01" placeholder="0.00">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Quantity</label>
+      <div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-top:8px;">
+        <button id="cartItemMinus" style="width:56px;height:56px;font-size:28px;border:2px solid #E0E0E0;border-radius:50%;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+        <input type="number" id="cartItemQty" style="width:80px;text-align:center;font-size:24px;font-weight:700;border:2px solid #E0E0E0;border-radius:8px;padding:8px;" min="1">
+        <button id="cartItemPlus" style="width:56px;height:56px;font-size:28px;border:2px solid #4CAF50;border-radius:50%;background:#4CAF50;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+      </div>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Discount ($)</label>
+      <input type="number" id="cartItemDiscount" class="form-input" step="0.01" placeholder="0.00" min="0">
+    </div>
+    <div id="cartItemLineTotal" style="text-align:center;font-size:20px;font-weight:700;color:#4CAF50;padding:16px 0;border-top:1px solid #E0E0E0;margin-top:16px;"></div>
+  </div>
+  <div class="panel-footer">
+    <button class="btn-primary" id="applyCartItemBtn">APPLY</button>
+  </div>
+</div>
+<!-- CART PANEL -->
+<div class="panel" id="cartPanel">
+  <div class="panel-header">
+    <button class="panel-back" id="cartBack">&#8592;</button>
+    <span class="panel-title">Cart</span>
+    <span id="cartItemCount" style="font-size:14px;color:#9E9E9E;"></span>
+  </div>
+  <div id="orderList" class="cart-items"></div>
+  <div class="cart-summary">
+    <div class="summary-row">
+      <span>Subtotal</span>
+      <span id="subtotal">0.00</span>
+    </div>
+    <div class="summary-row">
+      <span>Discount</span>
+      <span id="discountDisplay">0.00</span>
+    </div>
+    <div class="summary-row">
+      <span>Tax</span>
+      <span id="tax">0.00</span>
+    </div>
+    <div class="summary-row total">
+      <span>TOTAL</span>
+      <span id="grandTotal">0.00</span>
+    </div>
+  </div>
+  <div class="cart-actions">
+    <button class="cart-action-btn hold" id="holdBtn">HOLD</button>
+    <button class="cart-action-btn" id="ticketsBtn" style="background:#2196F3;">TICKETS</button>
+    <button class="cart-action-btn disc" id="discBtn">DISC</button>
+    <button class="cart-action-btn void" id="voidBtn">CLEAR</button>
+  </div>
+  <div class="panel-footer">
+    <button class="btn-primary" id="chargeBtn" disabled>CHARGE 0.00</button>
+  </div>
+</div>
+
+<!-- TICKETS PANEL -->
+<div class="panel" id="ticketsPanel">
+  <div class="panel-header">
+    <button class="panel-back" id="ticketsBack">&#8592;</button>
+    <span class="panel-title">Saved Tickets</span>
+  </div>
+  <div id="ticketsList" style="padding:12px;"></div>
+</div>
+
+<!-- RECENT SALES PANEL -->
+<div class="panel" id="salesPanel">
+  <div class="panel-header">
+    <button class="panel-back" id="salesBack">&#8592;</button>
+    <span class="panel-title">Recent Sales</span>
+  </div>
+  <div id="salesList" style="padding:12px;overflow-y:auto;"></div>
+</div>
+
+<!-- SALE DETAIL PANEL -->
+<div class="panel" id="saleDetailPanel" style="z-index:600;">
+  <div class="panel-header">
+    <button class="panel-back" id="saleDetailBack">&#8592;</button>
+    <span class="panel-title" id="saleDetailTitle">Sale</span>
+  </div>
+  <div id="saleDetailBody" style="padding:12px;overflow-y:auto;"></div>
+  <div class="panel-footer" style="display:flex;gap:8px;">
+    <button class="btn-primary" id="saleRefundBtn" style="background:#FF9800;flex:1;">REFUND WHOLE RECEIPT</button>
+    <button class="btn-primary" id="saleReissueBtn" style="background:#4CAF50;flex:1;">REISSUE</button>
+  </div>
+</div>
+
+<!-- Z REPORT PANEL -->
+<div class="panel" id="zReportPanel" style="z-index:700;">
+  <div class="panel-header">
+    <button class="panel-back" id="zReportBack">&#8592;</button>
+    <span class="panel-title" id="zReportTitle">Z Report</span>
+    <button id="zReportPrintBtn" style="background:none;border:none;color:#FFFFFF;font-size:14px;cursor:pointer;">PRINT</button>
+  </div>
+  <div id="zReportBody" style="padding:12px;overflow-y:auto;"></div>
+</div>
+<!-- DAY SHEET REVIEW PANEL (sheets sent from the KEYPOS Sheet app) -->
+<div class="panel" id="sheetReviewPanel" style="z-index:700;">
+  <div class="panel-header">
+    <button class="panel-back" id="sheetReviewBack">&#8592;</button>
+    <span class="panel-title" id="sheetReviewTitle">Day sheet</span>
+  </div>
+  <div id="sheetReviewBody" style="padding:12px;overflow-y:auto;"></div>
+</div>
+<!-- PAYMENT PANEL -->
+<div class="panel" id="paymentPanel">
+  <div class="panel-header">
+    <button class="panel-back" id="paymentBack">&#8592;</button>
+    <span class="panel-title">Payment</span>
+    <span id="payTotalDisplay" style="font-size:16px;font-weight:700;color:#4CAF50;"></span>
+  </div>
+  <div class="payment-methods">
+    <button class="pay-method-btn" id="payCashBtn">&#128181; CASH</button>
+    <button class="pay-method-btn" id="payCardBtn">&#128179; CARD</button>
+    <button class="pay-method-btn" id="paySplitBtn">&#9874; SPLIT</button>
+    <button class="pay-method-btn" id="payAccountBtn">&#128203; ACCOUNT</button>
+  </div>
+  <div id="payCashSection" style="display:none;">
+    <div class="pay-input-section">
+      <label class="pay-label">Cash Tendered</label>
+      <input type="number" class="pay-input" id="cashTenderedInput" placeholder="0.00" step="0.01">
+      <div class="change-display" id="changeDisplay">Change: 0.00</div>
+    </div>
+    <div class="panel-footer">
+      <button class="btn-primary" id="confirmCashBtn">CONFIRM CASH</button>
+    </div>
+  </div>
+  <div id="payCardSection" style="display:none;">
+    <div class="pay-input-section">
+      <p style="text-align:center;color:#757575;padding:24px;">Swipe or insert card</p>
+    </div>
+    <div class="panel-footer">
+      <button class="btn-primary" id="confirmCardBtn">CONFIRM CARD</button>
+    </div>
+  </div>
+  <div id="paySplitSection" style="display:none;">
+    <div class="pay-input-section">
+      <label class="pay-label">Cash Amount</label>
+      <input type="number" class="pay-input" id="splitCashInput" placeholder="0.00" step="0.01" style="margin-bottom:12px;">
+      <label class="pay-label">Card Amount</label>
+      <input type="number" class="pay-input" id="splitCardInput" placeholder="0.00" step="0.01">
+      <div id="splitRemaining" style="text-align:center;color:#F44336;padding:8px;">Remaining: 0.00</div>
+    </div>
+    <div class="panel-footer">
+      <button class="btn-primary" id="confirmSplitBtn">CONFIRM SPLIT</button>
+    </div>
+  </div>
+  <div id="payAccountSection" style="display:none;">
+    <div class="pay-input-section">
+      <label class="pay-label">Customer</label>
+      <select id="accountCustomerSelect" class="form-input">
+        <option value="">-- Select Customer --</option>
+      </select>
+      <div id="accountBalanceDisplay" style="text-align:center;padding:8px;color:#757575;font-size:14px;"></div>
+    </div>
+    <div class="panel-footer">
+      <button class="btn-primary" id="confirmAccountBtn">CONFIRM ACCOUNT</button>
+    </div>
+  </div>
+  <div style="padding:12px 16px;">
+    <button class="btn-secondary" id="cancelPayBtn">Cancel</button>
+  </div>
+</div>
+
+<!-- PRODUCT DETAIL/EDIT PANEL -->
+<div class="panel" id="productPanel">
+  <div class="panel-header">
+    <button class="panel-back" id="productPanelBack">&#8592;</button>
+    <span class="panel-title" id="productPanelTitle">Add Product</span>
+  </div>
+  <div class="form-section">
+    <input type="hidden" id="editProductId">
+    <div class="form-field">
+      <label class="form-label">Name *</label>
+      <input type="text" id="editProductName" class="form-input" placeholder="Product name">
+    </div>
+    <div class="form-field">
+      <label class="form-label">SKU</label>
+      <input type="text" id="editProductSku" class="form-input" placeholder="Auto-generated" readonly style="background:#F5F5F5;color:#9E9E9E;">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Barcode</label>
+      <input type="text" id="editProductBarcode" class="form-input" placeholder="Scan or type">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Category</label>
+      <select id="editProductCategory" class="form-select">
+        <option value="">-- Select --</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Unit</label>
+      <select id="editProductUnit" class="form-select">
+        <option value="">-- Select --</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Sell Price</label>
+      <input type="number" id="editProductPrice" class="form-input" placeholder="0.00" step="0.01">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Cost Price (WAC)</label>
+      <input type="number" id="editProductCost" class="form-input" 
+        placeholder="Set via purchases" readonly 
+        style="background:#F5F5F5;color:#757575;">
+      <p style="font-size:12px;color:#9E9E9E;margin-top:4px;">
+        Cost is updated automatically when purchases are posted
+      </p>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Low Stock Alert</label>
+      <input type="number" id="editProductLowStock" class="form-input" placeholder="5">
+    </div>
+    <div id="productEditActions" class="product-edit-actions inv-write" style="display:none;">
+      <div class="product-stock-info" id="productStockInfo"></div>
+      <button type="button" class="btn-secondary" id="productAdjustBtn">ADJUST STOCK</button>
+      <button type="button" class="btn-secondary btn-outline-red" id="productDeleteBtn">DELETE PRODUCT</button>
+    </div>
+  </div>
+  <div class="panel-footer">
+    <button class="btn-primary" id="saveProductBtn">SAVE PRODUCT</button>
+  </div>
+</div>
+
+<!-- CUSTOMER DETAIL PANEL -->
+<div class="panel" id="customerPanel">
+  <div class="panel-header">
+    <button class="panel-back" id="customerPanelBack">&#8592;</button>
+    <span class="panel-title" id="customerPanelTitle">Add Customer</span>
+  </div>
+  <div class="form-section">
+    <input type="hidden" id="editCustomerId">
+    <div class="form-field">
+      <label class="form-label">Name *</label>
+      <input type="text" id="editCustomerName" class="form-input" placeholder="Full name">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Phone</label>
+      <input type="text" id="editCustomerPhone" class="form-input" placeholder="Phone number">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Email</label>
+      <input type="email" id="editCustomerEmail" class="form-input" placeholder="Email">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Credit Limit</label>
+      <input type="number" id="editCustomerCredit" class="form-input" placeholder="0.00">
+    </div>
+  </div>
+  <div class="panel-footer">
+    <button class="btn-primary" id="saveCustomerBtn">SAVE CUSTOMER</button>
+  </div>
+</div>
+
+<!-- CUSTOMER LEDGER PANEL -->
+<div class="panel" id="customerLedgerPanel">
+  <div class="panel-header">
+    <button class="panel-back" id="ledgerBack">&#8592;</button>
+    <span class="panel-title" id="ledgerCustomerName">Ledger</span>
+  </div>
+  <div class="p-16">
+    <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
+      <span style="color:#757575;">Balance Owed</span>
+      <span style="font-size:20px;font-weight:700;color:#F44336;" id="ledgerBalance">0.00</span>
+    </div>
+    <div class="cust-write" style="display:flex;gap:8px;margin-bottom:16px;">
+      <button type="button" class="btn-secondary" id="ledgerEditBtn" style="flex:1;">EDIT</button>
+      <button type="button" class="btn-secondary btn-outline-red" id="ledgerDeleteBtn" style="flex:1;">DELETE</button>
+    </div>
+    <div class="form-field cust-write">
+      <label class="form-label">Receive Payment</label>
+      <input type="number" id="paymentAmount" class="form-input" placeholder="0.00">
+      <select id="paymentMethod" class="form-select mt-8">
+        <option value="cash">Cash (goes into the drawer)</option>
+        <option value="card">Card</option>
+      </select>
+      <button class="btn-primary mt-8" id="receivePaymentBtn">RECEIVE PAYMENT</button>
+    </div>
+  </div>
+  <div id="ledgerEntries"></div>
+</div>
+
+<!-- PURCHASE FORM PANEL -->
+<div class="panel" id="purchaseFormPanel">
+  <div class="panel-header">
+    <button class="panel-back" id="purchaseFormBack">&#8592;</button>
+    <span class="panel-title" id="purchaseFormTitle">New Purchase</span>
+  </div>
+  <div class="form-section">
+    <input type="hidden" id="editPurchaseId">
+    <div class="form-field">
+      <label class="form-label">Supplier (optional)</label>
+      <input type="text" id="purchaseSupplier" class="form-input" placeholder="Pick or type a new supplier" list="supplierSuggestions" autocomplete="off">
+      <datalist id="supplierSuggestions"></datalist>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Reference #</label>
+      <input type="text" id="purchaseRef" class="form-input" placeholder="Auto-generated" readonly style="background:#F5F5F5;color:#757575;">
+    </div>
+    <div id="purchaseLineEntry">
+    <div class="form-field" style="position:relative;">
+      <label class="form-label">Product</label>
+      <input type="text" id="lineProduct" class="form-input" placeholder="Type to search..." autocomplete="off">
+      <div id="productDropdown" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:9999;background:#fff;border:1px solid #4CAF50;border-radius:4px;max-height:150px;overflow-y:auto;box-shadow:0 4px 8px rgba(0,0,0,0.2);"></div>
+    </div>
+    <div style="display:flex;margin-bottom:16px;">
+      <div style="flex:1;margin-right:8px;">
+        <label class="form-label">Qty</label>
+        <input type="number" id="lineQty" class="form-input" placeholder="0" step="0.001" min="0">
+      </div>
+      <div style="flex:1;">
+        <label class="form-label">Unit Cost</label>
+        <input type="number" id="lineCost" class="form-input" placeholder="0.00" step="0.01">
+      </div>
+    </div>
+    <button class="btn-secondary mb-16" id="addPurchaseLineBtn">+ Add Line</button>
+    </div>
+    <div id="purchaseLinesList"></div>
+    <div style="text-align:right;font-size:18px;font-weight:700;margin-bottom:16px;">
+      Total: <span id="purchaseTotalDisplay">0.00</span>
+    </div>
+    <button type="button" class="btn-secondary btn-outline-red po-write" id="deletePurchaseBtn" style="display:none;">DELETE DRAFT</button>
+  </div>
+  <div class="panel-footer" id="purchaseFormFooter" style="display:flex;">
+    <button class="btn-secondary" id="saveDraftPurchaseBtn" style="margin-right:8px;flex:1;">SAVE DRAFT</button>
+    <button class="btn-primary" id="postPurchaseBtn" style="flex:1;">POST</button>
+  </div>
+</div>
+
+<!-- EXPENSE FORM PANEL -->
+<div class="panel" id="expenseFormPanel">
+  <div class="panel-header">
+    <button class="panel-back" id="expenseFormBack">&#8592;</button>
+    <span class="panel-title" id="expenseFormTitle">Add Expenses</span>
+  </div>
+  <div class="form-section">
+    <div class="form-field">
+      <label class="form-label">Date</label>
+      <input type="date" id="expenseDate" class="form-input">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Category</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <select id="expenseCategory" class="form-select" style="flex:1;">
+          <option value="">-- Select --</option>
+        </select>
+        <button type="button" onclick="addExpenseCategory()" style="background:#4CAF50;color:#fff;border:none;padding:8px 12px;border-radius:4px;font-size:13px;white-space:nowrap;">+ CAT</button>
+      </div>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Amount</label>
+      <input type="number" id="expenseAmount" class="form-input" placeholder="0.00" step="0.01">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Description</label>
+      <input type="text" id="expenseDesc" class="form-input" placeholder="Optional">
+    </div>
+    <div class="form-field">
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;color:#424242;">
+        <input type="checkbox" id="expenseDrawer" style="width:20px;height:20px;">
+        Paid from the cash drawer (lowers the shift's expected cash)
+      </label>
+    </div>
+    <button type="button" id="addExpenseLineBtn" class="btn-secondary" style="width:100%;margin-bottom:12px;">+ ADD LINE</button>
+    <div id="expenseLinesList"></div>
+    <div style="text-align:right;font-weight:700;font-size:16px;padding:8px 0;" id="expenseLinesTotal">Total: 0.00</div>
+    <button type="button" class="btn-secondary btn-outline-red" id="deleteExpenseBtn" style="display:none;">DELETE EXPENSE</button>
+  </div>
+  <div class="panel-footer">
+    <button class="btn-primary" id="saveExpenseBtn">SAVE ALL</button>
+  </div>
+</div>
+<!-- REPORT DETAIL PANEL -->
+<div class="panel" id="reportDetailPanel">
+  <div class="panel-header">
+    <button class="panel-back" id="reportDetailBack">&#8592;</button>
+    <span class="panel-title" id="reportDetailTitle">Report</span>
+    <button style="background:none;border:none;color:#FFFFFF;font-size:14px;cursor:pointer;" id="exportReportBtn">CSV</button>
+  </div>
+  <div class="p-16" style="border-bottom:1px solid #E0E0E0;">
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input type="date" id="reportDetailFrom" class="form-input" style="flex:1;">
+      <input type="date" id="reportDetailTo" class="form-input" style="flex:1;">
+      <button id="runReportBtn" class="btn-primary" style="white-space:nowrap;padding:8px 16px;">RUN</button>
+    </div>
+  </div>
+  <div id="reportDetailContent" class="p-16"></div>
+</div>
+
+<!-- CHANGE PASSWORD PANEL -->
+<div class="panel" id="passwordPanel">
+  <div class="panel-header">
+    <button class="panel-back" id="passwordBack">&#8592;</button>
+    <span class="panel-title">Change Password</span>
+  </div>
+  <div class="form-section">
+    <div class="form-field">
+      <label class="form-label" for="pwCurrent">Current password</label>
+      <input type="password" id="pwCurrent" class="form-input" autocomplete="current-password">
+    </div>
+    <div class="form-field">
+      <label class="form-label" for="pwNew">New password</label>
+      <input type="password" id="pwNew" class="form-input" placeholder="At least 8 characters" autocomplete="new-password">
+    </div>
+    <div class="form-field">
+      <label class="form-label" for="pwRepeat">Repeat new password</label>
+      <input type="password" id="pwRepeat" class="form-input" autocomplete="new-password">
+    </div>
+    <button class="btn-primary" id="savePasswordBtn" style="width:100%;">SAVE PASSWORD</button>
+  </div>
+</div>
+
+<!-- USER FORM PANEL -->
+<div class="panel" id="userFormPanel">
+  <div class="panel-header">
+    <button class="panel-back" id="userFormBack">&#8592;</button>
+    <span class="panel-title" id="userFormTitle">Add User</span>
+  </div>
+  <div class="form-section">
+    <input type="hidden" id="editUserId">
+    <div class="form-field">
+      <label class="form-label">Name</label>
+      <input type="text" id="editUserName" class="form-input" placeholder="Full name">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Username</label>
+      <input type="text" id="editUserUsername" class="form-input" placeholder="username">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Password</label>
+      <input type="password" id="editUserPassword" class="form-input" placeholder="At least 8 characters" autocomplete="new-password">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Role</label>
+      <select id="editUserRole" class="form-select">
+        <option value="cashier">Cashier</option>
+        <option value="manager">Manager</option>
+        <option value="admin">Admin</option>
+        <option value="sheet">Day Sheet only (KEYPOS Sheet app)</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Register Actions (tracked)</label>
+      <div style="display:flex;flex-direction:column;">
+        <label style="padding:6px 0;display:flex;align-items:center;font-size:14px;">
+          <input type="checkbox" id="permEditPrice" style="margin-right:10px;width:18px;height:18px;"> Edit Price
+        </label>
+        <label style="padding:6px 0;display:flex;align-items:center;font-size:14px;">
+          <input type="checkbox" id="permRefund" style="margin-right:10px;width:18px;height:18px;"> Refunds
+        </label>
+        <label style="padding:6px 0;display:flex;align-items:center;font-size:14px;">
+          <input type="checkbox" id="permDiscount" style="margin-right:10px;width:18px;height:18px;"> Discounts
+        </label>
+        <label style="padding:6px 0;display:flex;align-items:center;font-size:14px;">
+          <input type="checkbox" id="permApproveSheets" style="margin-right:10px;width:18px;height:18px;"> Approve day sheets (from the Sheet app)
+        </label>
+      </div>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Inventory Access</label>
+      <select id="accessInventory" class="form-select">
+        <option value="none">No Access</option>
+        <option value="read">Read Only (no cost)</option>
+        <option value="full">Full Edit</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Purchases Access</label>
+      <select id="accessPurchases" class="form-select">
+        <option value="none">No Access</option>
+        <option value="read">View Only</option>
+        <option value="full">Full Edit</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Reports Access</label>
+      <select id="accessReports" class="form-select">
+        <option value="none">No Access</option>
+        <option value="own">Own Sales Only</option>
+        <option value="team">Team (all cashiers)</option>
+        <option value="full">Full (incl. P&amp;L)</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Customers Access</label>
+      <select id="accessCustomers" class="form-select">
+        <option value="none">No Access</option>
+        <option value="read">Read Only</option>
+        <option value="full">Full Edit</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Expenses Access</label>
+      <select id="accessExpenses" class="form-select">
+        <option value="none">No Access</option>
+        <option value="own">Add + Own Only</option>
+        <option value="team">Add + Team (no admin)</option>
+        <option value="full">Full Edit</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Users Access</label>
+      <select id="accessUsers" class="form-select">
+        <option value="none">No Access</option>
+        <option value="full">Full Edit</option>
+      </select>
+    </div>
+  </div>
+  <div class="panel-footer">
+    <button class="btn-primary" id="saveUserBtn">SAVE USER</button>
+  </div>
+</div>
+
+<!-- SHIFT MODAL -->
+<div class="modal-overlay" id="shiftModal">
+  <div class="modal">
+    <h2>Open Shift</h2>
+    <p style="color:#757575;margin-bottom:16px;text-align:center;">Enter opening float to begin</p>
+    <input type="number" id="floatInput" placeholder="Opening float amount" step="0.01">
+    <button class="modal-btn" id="openShiftBtn">OPEN SHIFT</button>
+  </div>
+</div>
+
+<!-- PRODUCT MODAL (legacy - kept for compatibility) -->
+<div class="modal-overlay" id="productModal">
+  <div class="modal">
+    <h2 id="productModalTitle">Add Product</h2>
+    <input type="hidden" id="productModalId">
+    <button class="modal-btn modal-btn-cancel" id="cancelProductBtn">Close</button>
+  </div>
+</div>
+
+<!-- SCRIPTS -->
+<script src="/js/api.js?v=c31d411a"></script>
+<script src="/js/db.js?v=205481ed"></script>
+<script src="/js/sync.js?v=c5396012"></script>
+<script src="/js/app/core.js?v=4237d8a5"></script>
+<script src="/js/app/access.js?v=80a930f0"></script>
+<script src="/js/app/settings.js?v=ca7278bd"></script>
+<script src="/js/app/catalog.js?v=b96890c8"></script>
+<script src="/js/app/offline.js?v=c569850b"></script>
+<script src="/js/app/tickets.js?v=e483b7d4"></script>
+<script src="/js/app/cart.js?v=0f4c0241"></script>
+<script src="/js/app/payment.js?v=be22a9ab"></script>
+<script src="/js/app/shift.js?v=6473243e"></script>
+<script src="/js/app/sales.js?v=a44a5f74"></script>
+<script src="/js/app/inventory.js?v=4489dab9"></script>
+<script src="/js/app/purchases.js?v=4cfb2c9b"></script>
+<script src="/js/app/customers.js?v=9abc08b3"></script>
+<script src="/js/app/expenses.js?v=2b13ce96"></script>
+<script src="/js/app/users.js?v=aa2d1a48"></script>
+<script src="/js/app/daysheet.js?v=d4c2611d"></script>
+<script src="/js/app/csv.js?v=dc7c65ae"></script>
+<script src="/js/app/reports.js?v=37fb0971"></script>
+<script src="/js/app/init.js?v=1753329e"></script>
+<script src="/js/app/nav.js?v=2bb96b49"></script>
+
+</body>
+</html>
